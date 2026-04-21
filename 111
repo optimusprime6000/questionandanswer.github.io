@@ -1,0 +1,96 @@
+<!-- Cargo Site Compatible Q&A (Embed as Custom HTML) -->
+<div id="qa-app">
+  <style>
+    #qa-app { font-family: Arial, sans-serif; max-width: 700px; margin: auto; }
+    #qa-app input, #qa-app button { padding: 8px; font-size: 14px; }
+    #qa-app button { cursor: pointer; }
+    .qa-item { border: 1px solid #ddd; padding: 10px; margin-top: 10px; }
+    .pending { opacity: 0.6; }
+    .admin { margin-top: 10px; }
+  </style>
+
+  <h2>Q&A</h2>
+
+  <div>
+    <input id="qInput" placeholder="Ask a question..." />
+    <button onclick="addQ()">Submit</button>
+  </div>
+
+  <div style="margin-top:10px;">
+    <button onclick="toggleAdmin()">Admin</button>
+    <span id="mode">User Mode</span>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script>
+(function(){
+  const PASS = "admin123";
+  let admin = false;
+  let data = JSON.parse(localStorage.getItem('cargoQA')||"[]");
+
+  function save(){ localStorage.setItem('cargoQA', JSON.stringify(data)); }
+
+  window.toggleAdmin = function(){
+    if(!admin){
+      const p = prompt("Password:");
+      if(p===PASS) admin=true; else return alert("Wrong");
+    } else admin=false;
+    render();
+  }
+
+  window.addQ = function(){
+    const el = document.getElementById('qInput');
+    const v = el.value.trim();
+    if(!v) return;
+    data.unshift({q:v,a:"",ok:false});
+    el.value="";
+    save(); render();
+  }
+
+  window.answer = function(i){
+    if(!admin) return;
+    const v = document.getElementById('a'+i).value.trim();
+    if(!v) return;
+    data[i].a = v;
+    save(); render();
+  }
+
+  window.approve = function(i){ data[i].ok=true; save(); render(); }
+  window.del = function(i){ data.splice(i,1); save(); render(); }
+
+  function render(){
+    document.getElementById('mode').innerText = admin?"Admin Mode":"User Mode";
+    const list = document.getElementById('list');
+    list.innerHTML="";
+
+    data.forEach((item,i)=>{
+      if(!item.ok && !admin) return;
+
+      const d = document.createElement('div');
+      d.className = 'qa-item ' + (item.ok?"":"pending");
+
+      d.innerHTML = `
+        <div><b>${item.q}</b></div>
+        ${item.a ? `<div style="margin-top:5px;">${item.a}</div>` : ''}
+      `;
+
+      if(admin){
+        d.innerHTML += `
+          <div class="admin">
+            ${!item.ok ? `<button onclick="approve(${i})">Approve</button>`:''}
+            <input id="a${i}" placeholder="Answer..." />
+            <button onclick="answer(${i})">Save</button>
+            <button onclick="del(${i})">Delete</button>
+          </div>
+        `;
+      }
+
+      list.appendChild(d);
+    });
+  }
+
+  render();
+})();
+</script>
